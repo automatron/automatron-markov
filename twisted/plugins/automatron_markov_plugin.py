@@ -20,6 +20,7 @@ class AutomatronMarkovPlugin(object):
     def __init__(self, controller):
         self.controller = controller
         redis_config = build_redis_config(controller.config_file, 'markov')
+        self.chain_length = int(redis_config.pop('chain_length', DEFAULT_CHAIN_LENGTH))
         self.redis = lazyConnection(**redis_config)
 
     def on_command(self, client, user, command, args):
@@ -77,4 +78,4 @@ class AutomatronMarkovPlugin(object):
     @defer.inlineCallbacks
     def _learn(self, prefix, message):
         for phrase in parse_line(message):
-            yield learn_phrase(self.redis, prefix, phrase)
+            yield learn_phrase(self.chain_length, self.redis, prefix, phrase)

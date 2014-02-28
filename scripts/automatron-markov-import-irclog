@@ -2,7 +2,7 @@
 
 import re
 import sys
-from automatron_markov import build_prefix
+from automatron_markov import build_prefix, DEFAULT_CHAIN_LENGTH
 from automatron_redis import build_redis_config
 from automatron_markov.learn import learn_phrase, parse_line
 from ConfigParser import SafeConfigParser
@@ -12,7 +12,7 @@ from redis import Redis
 LOG_PARSE_RE = re.compile(r'(\d+:\d+|\[\d+:\d+]) <.*?> (.*)')
 
 
-def parse_file(redis, prefix, fp):
+def parse_file(chain_length, redis, prefix, fp):
     for line in fp:
         m = LOG_PARSE_RE.match(line)
         if not m:
@@ -26,7 +26,7 @@ def parse_file(redis, prefix, fp):
         pipeline = redis.pipeline()
 
         for phrase in phrases:
-            learn_phrase(pipeline, prefix, phrase)
+            learn_phrase(chain_length, pipeline, prefix, phrase)
 
         pipeline.execute()
 
@@ -35,6 +35,7 @@ def main(config_file_path, namespace, *filenames):
     config_file = SafeConfigParser()
     config_file.readfp(open(config_file_path))
     redis_config = build_redis_config(config_file, 'markov')
+    chain_length = int(redis_config.pop('chain_length'), DEFAULT_CHAIN_LENGTH)
 
     r = Redis(
         host=redis_config['host'],
@@ -49,10 +50,10 @@ def main(config_file_path, namespace, *filenames):
         for filename in filenames:
             print >>sys.stderr, 'Importing corpus from \'%s\'.' % filename
             with open(filename, 'r') as fp:
-                parse_file(r, prefix, fp)
+                parse_file(chain_length, r, prefix, fp)
     else:
         print >>sys.stderr, 'Importing corpus from <stdin>.'
-        parse_file(r, prefix, sys.stdin)
+        parse_file(chain_length, r, prefix, sys.stdin)
 
 
 if __name__ == '__main__':

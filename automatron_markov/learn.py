@@ -1,4 +1,4 @@
-from automatron_markov import encode, CHAIN_LENGTH, CLEANUP_RE, PHRASE_RE, PRE_CLEAN_RE, PREFIX_RE
+from automatron_markov import encode, CLEANUP_RE, PHRASE_RE, PRE_CLEAN_RE, PREFIX_RE
 
 
 def parse_line(line):
@@ -13,9 +13,9 @@ def parse_line(line):
     ]
 
 
-def learn_phrase(pipeline, prefix, phrase):
+def learn_phrase(chain_length, pipeline, prefix, phrase):
     words = [w.lower() for w in phrase.split()]
-    if len(words) < CHAIN_LENGTH + 1:
+    if len(words) < chain_length + 1:
         return pipeline
 
     for word in words:
@@ -25,9 +25,9 @@ def learn_phrase(pipeline, prefix, phrase):
     words.append(None)
     reversed_words.append(None)
 
-    for i in range(len(words) - CHAIN_LENGTH):
-        key = words[i: i + CHAIN_LENGTH]
-        next_word = words[i + CHAIN_LENGTH]
+    for i in range(len(words) - chain_length):
+        key = words[i: i + chain_length]
+        next_word = words[i + chain_length]
         key_encoded = encode(key)
 
         # Metadata
@@ -39,8 +39,8 @@ def learn_phrase(pipeline, prefix, phrase):
         pipeline.lpush(prefix + ':forward:' + key_encoded, encode(next_word))
 
         # Reverse chain
-        key = tuple(reversed_words[i: i + CHAIN_LENGTH])
-        next_word = reversed_words[i + CHAIN_LENGTH]
+        key = tuple(reversed_words[i: i + chain_length])
+        next_word = reversed_words[i + chain_length]
         pipeline.lpush(prefix + ':reverse:' + encode(key), encode(next_word))
 
     return pipeline
