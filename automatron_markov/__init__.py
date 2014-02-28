@@ -1,8 +1,5 @@
 import re
-try:
-    import ujson as json
-except ImportError:
-    import json
+import ujson
 
 
 CHAIN_LENGTH = 3
@@ -16,11 +13,11 @@ DEFAULT_NAMESPACE = 'default'
 
 
 def encode(arg):
-    return json.dumps(arg, ensure_ascii=False)
+    return ujson.dumps(arg, ensure_ascii=False)
 
 
 def decode(arg):
-    return json.loads(arg)
+    return ujson.loads(arg)
 
 
 def build_prefix(namespace):

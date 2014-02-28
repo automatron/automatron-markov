@@ -10,6 +10,7 @@ with open(os.path.join(here, 'CHANGES.txt')) as f:
 requires = [
     'automatron-redis',
     'redis',  # For automatron-markov-import-irclog script
+    'ujson',
 ]
 
 setup(
