@@ -1,5 +1,6 @@
 from twisted.internet import defer
 from automatron.core.event import STOP
+from automatron.core.util import parse_user
 from automatron_markov import build_prefix, DEFAULT_CHAIN_LENGTH
 from automatron_markov.learn import learn_phrase, parse_line
 from automatron_markov.reply import build_reply
@@ -85,7 +86,7 @@ markov namespace <true/false> <channel...>'''.split('\n'):
         if config.get('reply', 'false') == 'true' and \
                 channel != client.nickname and \
                 message.startswith(client.nickname + ':'):
-            nickname = client.parse_user(user)[0]
+            nickname = parse_user(user)[0]
             d = build_reply(self.redis, prefix, message.split(':', 1)[1].strip())
             d.addCallback(lambda reply: client.msg(channel, '%s: %s' % (nickname, reply or 'I got nothing...')))
             defer.returnValue(STOP)
