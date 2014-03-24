@@ -8,8 +8,8 @@ from automatron_markov.reply import build_reply
 from automatron_redis.txredisapi import lazyConnection
 from zope.interface import classProvides, implements
 from automatron.controller.client import IAutomatronMessageHandler
-from automatron.controller.command import IAutomatronCommandHandler
-from automatron.controller.plugin import IAutomatronPluginFactory
+from automatron.backend.command import IAutomatronCommandHandler
+from automatron.backend.plugin import IAutomatronPluginFactory
 from automatron_redis import build_redis_config
 
 
