@@ -4,9 +4,9 @@ from automatron_markov.learn import learn_phrase, parse_line
 from automatron_markov.reply import build_reply
 from automatron_redis.txredisapi import lazyConnection
 from zope.interface import classProvides, implements
-from automatron.client import IAutomatronMessageHandler
-from automatron.command import IAutomatronCommandHandler
-from automatron.plugin import IAutomatronPluginFactory, STOP
+from automatron.controller.client import IAutomatronMessageHandler
+from automatron.controller.command import IAutomatronCommandHandler
+from automatron.controller.plugin import IAutomatronPluginFactory, STOP
 from automatron_redis import build_redis_config
 
 
