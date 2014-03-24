@@ -26,42 +26,42 @@ class AutomatronMarkovPlugin(object):
         self.chain_length = int(redis_config.pop('chain_length', DEFAULT_CHAIN_LENGTH))
         self.redis = lazyConnection(**redis_config)
 
-    def on_command(self, client, user, command, args):
+    def on_command(self, server, user, command, args):
         if command != 'markov':
             return
 
         if not args:
-            self._help(client, user)
+            self._help(server, user)
         else:
             subcommand, args = args[0], args[1:]
-            self._on_subcommand(client, user, subcommand, args)
+            self._on_subcommand(server, user, subcommand, args)
 
         return STOP
 
-    def _help(self, client, user):
+    def _help(self, server, user):
         for line in '''Syntax: markov <task> <args...>
 Available tasks:
 markov learn <true/false> <channel...>
 markov reply <true/false> <channel...>
 markov namespace <true/false> <channel...>'''.split('\n'):
-            self.controller.plugins.emit(IAutomatronClientActions['message'], client.server, user, line)
+            self.controller.plugins.emit(IAutomatronClientActions['message'], server['server'], user, line)
 
     @defer.inlineCallbacks
-    def _on_subcommand(self, client, user, subcommand, args):
+    def _on_subcommand(self, server, user, subcommand, args):
         if subcommand in ('learn', 'reply') and len(args) >= 2 and args[0] in ('true', 'false'):
-            if (yield self._verify_permissions(client, user, args[1:])):
-                self._on_update_setting(client, user, args[1:], subcommand, args[0])
+            if (yield self._verify_permissions(server, user, args[1:])):
+                self._on_update_setting(server, user, args[1:], subcommand, args[0])
         elif subcommand == 'namespace' and len(args) >= 2:
-            if (yield self._verify_permissions(client, user, args[1:])):
-                self._on_update_setting(client, user, args[1:], subcommand, args[0])
+            if (yield self._verify_permissions(server, user, args[1:])):
+                self._on_update_setting(server, user, args[1:], subcommand, args[0])
 
     @defer.inlineCallbacks
-    def _verify_permissions(self, client, user, channels):
+    def _verify_permissions(self, server, user, channels):
         for channel in channels:
-            if not (yield self.controller.config.has_permission(client.server, channel, user, 'youtube-playlist')):
+            if not (yield self.controller.config.has_permission(server['server'], channel, user, 'markov')):
                 self.controller.plugins.emit(
                     IAutomatronClientActions['message'],
-                    client.server,
+                    server['server'],
                     user,
                     'You\'re not authorized to change settings for %s' % channel
                 )
@@ -69,11 +69,11 @@ markov namespace <true/false> <channel...>'''.split('\n'):
 
         defer.returnValue(True)
 
-    def _on_update_setting(self, client, user, channels, key, value):
+    def _on_update_setting(self, server, user, channels, key, value):
         for channel in channels:
             self.controller.config.update_plugin_value(
                 self,
-                client.server,
+                server['server'],
                 channel,
                 key,
                 value
@@ -81,27 +81,27 @@ markov namespace <true/false> <channel...>'''.split('\n'):
 
         self.controller.plugins.emit(
             IAutomatronClientActions['message'],
-            client.server,
+            server['server'],
             user,
             'OK'
         )
 
-    def on_message(self, client, user, channel, message):
-        return self._on_message(client, user, channel, message)
+    def on_message(self, server, user, channel, message):
+        return self._on_message(server, user, channel, message)
 
     @defer.inlineCallbacks
-    def _on_message(self, client, user, channel, message):
-        config = yield self.controller.config.get_plugin_section(self, client.server, channel)
+    def _on_message(self, server, user, channel, message):
+        config = yield self.controller.config.get_plugin_section(self, server['server'], channel)
         prefix = build_prefix(config.get('namespace'))
 
         if config.get('reply', 'false') == 'true' and \
-                channel != client.nickname and \
-                message.startswith(client.nickname + ':'):
+                channel != server['nickname'] and \
+                message.startswith(server['nickname'] + ':'):
             nickname = parse_user(user)[0]
             reply = yield build_reply(self.redis, prefix, message.split(':', 1)[1].strip())
             self.controller.plugins.emit(
                 IAutomatronClientActions['message'],
-                client.server,
+                server['server'],
                 channel,
                 '%s: %s' % (nickname, reply or 'I got nothing...'),
             )
