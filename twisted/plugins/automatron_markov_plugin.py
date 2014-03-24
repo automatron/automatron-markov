@@ -1,4 +1,5 @@
 from twisted.internet import defer
+from automatron.core.event import STOP
 from automatron_markov import build_prefix, DEFAULT_CHAIN_LENGTH
 from automatron_markov.learn import learn_phrase, parse_line
 from automatron_markov.reply import build_reply
@@ -6,7 +7,7 @@ from automatron_redis.txredisapi import lazyConnection
 from zope.interface import classProvides, implements
 from automatron.controller.client import IAutomatronMessageHandler
 from automatron.controller.command import IAutomatronCommandHandler
-from automatron.controller.plugin import IAutomatronPluginFactory, STOP
+from automatron.controller.plugin import IAutomatronPluginFactory
 from automatron_redis import build_redis_config
 
 
