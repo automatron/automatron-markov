@@ -1,4 +1,5 @@
 from twisted.internet import defer
+from automatron.controller.controller import IAutomatronClientActions
 from automatron.core.event import STOP
 from automatron.core.util import parse_user
 from automatron_markov import build_prefix, DEFAULT_CHAIN_LENGTH
@@ -43,7 +44,7 @@ Available tasks:
 markov learn <true/false> <channel...>
 markov reply <true/false> <channel...>
 markov namespace <true/false> <channel...>'''.split('\n'):
-            client.msg(user, line)
+            self.controller.plugins.emit(IAutomatronClientActions['message'], client.server, user, line)
 
     @defer.inlineCallbacks
     def _on_subcommand(self, client, user, subcommand, args):
@@ -58,7 +59,12 @@ markov namespace <true/false> <channel...>'''.split('\n'):
     def _verify_permissions(self, client, user, channels):
         for channel in channels:
             if not (yield self.controller.config.has_permission(client.server, channel, user, 'youtube-playlist')):
-                client.msg(user, 'You\'re not authorized to change settings for %s' % channel)
+                self.controller.plugins.emit(
+                    IAutomatronClientActions['message'],
+                    client.server,
+                    user,
+                    'You\'re not authorized to change settings for %s' % channel
+                )
                 defer.returnValue(False)
 
         defer.returnValue(True)
@@ -73,7 +79,12 @@ markov namespace <true/false> <channel...>'''.split('\n'):
                 value
             )
 
-        client.msg(user, 'OK')
+        self.controller.plugins.emit(
+            IAutomatronClientActions['message'],
+            client.server,
+            user,
+            'OK'
+        )
 
     def on_message(self, client, user, channel, message):
         return self._on_message(client, user, channel, message)
@@ -87,8 +98,13 @@ markov namespace <true/false> <channel...>'''.split('\n'):
                 channel != client.nickname and \
                 message.startswith(client.nickname + ':'):
             nickname = parse_user(user)[0]
-            d = build_reply(self.redis, prefix, message.split(':', 1)[1].strip())
-            d.addCallback(lambda reply: client.msg(channel, '%s: %s' % (nickname, reply or 'I got nothing...')))
+            reply = yield build_reply(self.redis, prefix, message.split(':', 1)[1].strip())
+            self.controller.plugins.emit(
+                IAutomatronClientActions['message'],
+                client.server,
+                channel,
+                '%s: %s' % (nickname, reply or 'I got nothing...'),
+            )
             defer.returnValue(STOP)
 
         if config.get('learn', 'false') == 'true':
