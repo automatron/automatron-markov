@@ -1,5 +1,4 @@
 from twisted.internet import defer
-from automatron.controller.controller import IAutomatronClientActions
 from automatron.core.event import STOP
 from automatron.core.util import parse_user
 from automatron_markov import build_prefix, DEFAULT_CHAIN_LENGTH
@@ -44,7 +43,7 @@ Available tasks:
 markov learn <true/false> <channel...>
 markov reply <true/false> <channel...>
 markov namespace <true/false> <channel...>'''.split('\n'):
-            self.controller.plugins.emit(IAutomatronClientActions['message'], server['server'], user, line)
+            self.controller.message(server['server'], user, line)
 
     @defer.inlineCallbacks
     def _on_subcommand(self, server, user, subcommand, args):
@@ -59,12 +58,8 @@ markov namespace <true/false> <channel...>'''.split('\n'):
     def _verify_permissions(self, server, user, channels):
         for channel in channels:
             if not (yield self.controller.config.has_permission(server['server'], channel, user, 'markov')):
-                self.controller.plugins.emit(
-                    IAutomatronClientActions['message'],
-                    server['server'],
-                    user,
-                    'You\'re not authorized to change settings for %s' % channel
-                )
+                self.controller.message(server['server'], user,
+                                        'You\'re not authorized to change settings for %s' % channel)
                 defer.returnValue(False)
 
         defer.returnValue(True)
@@ -79,12 +74,7 @@ markov namespace <true/false> <channel...>'''.split('\n'):
                 value
             )
 
-        self.controller.plugins.emit(
-            IAutomatronClientActions['message'],
-            server['server'],
-            user,
-            'OK'
-        )
+        self.controller.message(server['server'], user, 'OK')
 
     def on_message(self, server, user, channel, message):
         return self._on_message(server, user, channel, message)
@@ -99,12 +89,7 @@ markov namespace <true/false> <channel...>'''.split('\n'):
                 message.startswith(server['nickname'] + ':'):
             nickname = parse_user(user)[0]
             reply = yield build_reply(self.redis, prefix, message.split(':', 1)[1].strip())
-            self.controller.plugins.emit(
-                IAutomatronClientActions['message'],
-                server['server'],
-                channel,
-                '%s: %s' % (nickname, reply or 'I got nothing...'),
-            )
+            self.controller.message(server['server'], channel, '%s: %s' % (nickname, reply or 'I got nothing...'))
             defer.returnValue(STOP)
 
         if config.get('learn', 'false') == 'true':
